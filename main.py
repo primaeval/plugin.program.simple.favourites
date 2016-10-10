@@ -245,7 +245,7 @@ def index():
         items.append(
         {
             'label': label,
-            'path': url,
+            'path': plugin.url_for('play',url=url),
             'thumbnail':thumbnail,
             'context_menu': context_items,
         })
@@ -258,7 +258,7 @@ def index():
     })
 
 
-
+    plugin.set_content('movies')
     return items
 
 if __name__ == '__main__':
