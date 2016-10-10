@@ -1,9 +1,5 @@
 <settings>
-<category label="addons.ini File">
-<setting id="addons.folder" label="Folder" type="folder" default=""/>
-<setting id="addons.file" label="Filename" type="text" default="addons.ini"/>
+<category label="Help">
+<setting type="lsep" label="Add/Remove Shortcuts with the Context Menu"/>
 </category>
-<!--<category label="Display">
-<setting id="view_mode" label="View Mode" type="number" default="51" />
-</category>-->
 </settings>
