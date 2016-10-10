@@ -214,6 +214,7 @@ def index():
     for url in urls:
         label = labels[url]
         thumbnail = thumbnails[url]
+        path = url
         context_items = []
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
         items.append(
