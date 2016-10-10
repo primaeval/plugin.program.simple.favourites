@@ -80,11 +80,14 @@ def remove_folder(path):
     del thumbnails[path]
     xbmc.executebuiltin('Container.Refresh')
 
-@plugin.route('/subscribe_folder/<id>/<label>/<path>/<thumbnail>')
-def subscribe_folder(id,label,path,thumbnail):
+@plugin.route('/subscribe_folder/<media>/<id>/<label>/<path>/<thumbnail>')
+def subscribe_folder(media,id,label,path,thumbnail):
     folders = plugin.get_storage('folders')
     urls = plugin.get_storage('urls')
-    response = RPC.files.get_directory(media="files", directory=path, properties=["thumbnail"])
+    try:
+        response = RPC.files.get_directory(media=media, directory=path, properties=["thumbnail"])
+    except:
+        return
     files = response["files"]
     dirs = dict([[remove_formatting(f["label"]), f["file"]] for f in files if f["filetype"] == "directory"])
     thumbnails = dict([f["file"], f["thumbnail"]] for f in files)
@@ -114,7 +117,7 @@ def subscribe_folder(id,label,path,thumbnail):
         items.append(
         {
             'label': fancy_label,
-            'path': plugin.url_for('subscribe_folder',id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail),
+            'path': plugin.url_for('subscribe_folder',media=media, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail),
             'thumbnail': thumbnail,
             'context_menu': context_items,
         })
@@ -143,26 +146,21 @@ def subscribe_folder(id,label,path,thumbnail):
     return items
 
 
-@plugin.route('/add_addons')
-def add_addons():
+@plugin.route('/add_addons/<media>')
+def add_addons(media):
     folders = plugin.get_storage('folders')
     ids = {}
     for folder in folders:
         id = folders[folder]
         ids[id] = id
-    all_addons = []
-    for type in ["xbmc.addon.video", "xbmc.addon.audio"]:
-        response = RPC.addons.get_addons(type=type,properties=["name", "thumbnail"])
-        if "addons" in response:
-            found_addons = response["addons"]
-            all_addons = all_addons + found_addons
 
-    seen = set()
-    addons = []
-    for addon in all_addons:
-        if addon['addonid'] not in seen:
-            addons.append(addon)
-        seen.add(addon['addonid'])
+    type = "xbmc.addon.%s" % media
+
+    response = RPC.addons.get_addons(type=type,properties=["name", "thumbnail"])
+    if "addons" not in response:
+        return
+
+    addons = response["addons"]
 
     items = []
 
@@ -182,10 +180,37 @@ def add_addons():
         items.append(
         {
             'label': fancy_label,
-            'path': plugin.url_for('subscribe_folder',id=id, label=label, path=path, thumbnail=thumbnail),
+            'path': plugin.url_for('subscribe_folder',media="files", id=id, label=label, path=path, thumbnail=thumbnail),
             'thumbnail': thumbnail,
             'context_menu': context_items,
         })
+    return items
+
+@plugin.route('/add')
+def add():
+    items = []
+    for media in ["video", "music"]:
+        label = media
+        id = "none"
+        path = "library://%s" % media
+        thumbnail = get_icon_path(media)
+        items.append(
+        {
+            'label': "[B]%s[/B]" % media.title(),
+            'path': plugin.url_for('subscribe_folder',media=media, id=id, label=label, path=path, thumbnail=thumbnail),
+            'thumbnail': thumbnail,
+        })
+
+    for media in ["video", "audio"]:
+        label = media
+        thumbnail = get_icon_path(media)
+        items.append(
+        {
+            'label': "[B]%s Addons[/B]" % media.title(),
+            'path': plugin.url_for('add_addons',media=media),
+            'thumbnail': thumbnail,
+        })
+
     return items
 
 
@@ -228,9 +253,11 @@ def index():
     items.append(
     {
         'label': "Add",
-        'path': plugin.url_for('add_addons'),
+        'path': plugin.url_for('add'),
         'thumbnail':get_icon_path('settings'),
     })
+
+
 
     return items
 
