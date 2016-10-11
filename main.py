@@ -291,7 +291,6 @@ def index():
         'thumbnail':get_icon_path('settings'),
     })
 
-
     plugin.set_content('movies')
     return items
 
