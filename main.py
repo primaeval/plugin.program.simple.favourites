@@ -273,16 +273,25 @@ def index():
         favourites = re.findall("<favourite.*?</favourite>",data)
         for fav in favourites:
             fav = re.sub('&quot;','',fav)
+            url = ''
             match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
-            label = match.group(1)
-            thumbnail = match.group(2)
-            url = match.group(3)
-            items.append(
-            {
-                'label': label,
-                'path': plugin.url_for('execute',url=url),
-                'thumbnail':thumbnail,
-            })
+            if match:
+                label = match.group(1)
+                thumbnail = match.group(2)
+                url = match.group(3)
+            else:
+                match = re.search('<favourite name="(.*?)">(.*?)<',fav)
+                if match:
+                    label = match.group(1)
+                    thumbnail = ''
+                    url = match.group(2)
+            if url:
+                items.append(
+                {
+                    'label': label,
+                    'path': plugin.url_for('execute',url=url),
+                    'thumbnail':thumbnail,
+                })
 
     items.append(
     {
