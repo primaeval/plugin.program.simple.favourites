@@ -35,6 +35,10 @@ def remove_formatting(label):
 def play(url):
     xbmc.executebuiltin('PlayMedia(%s)' % url)
 
+@plugin.route('/execute/<url>')
+def execute(url):
+    xbmc.executebuiltin(url)
+
 @plugin.route('/add_url/<id>/<label>/<path>/<thumbnail>')
 def add_url(id,label,path,thumbnail):
     labels = plugin.get_storage('labels')
@@ -249,6 +253,23 @@ def index():
             'thumbnail':thumbnail,
             'context_menu': context_items,
         })
+
+    if plugin.get_setting('kodi.favourites') == 'true':
+        f = xbmcvfs.File("special://profile/favourites.xml","rb")
+        data = f.read()
+        favourites = re.findall("<favourite.*?</favourite>",data)
+        for fav in favourites:
+            fav = re.sub('&quot;','',fav)
+            match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+            label = match.group(1)
+            thumbnail = match.group(2)
+            url = match.group(3)
+            items.append(
+            {
+                'label': label,
+                'path': plugin.url_for('execute',url=url),
+                'thumbnail':thumbnail,
+            })
 
     items.append(
     {
