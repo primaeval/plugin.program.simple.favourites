@@ -84,6 +84,17 @@ def remove_folder(path):
     del thumbnails[path]
     xbmc.executebuiltin('Container.Refresh')
 
+@plugin.route('/change_image/<path>')
+def change_image(path):
+    d = xbmcgui.Dialog()
+    result = d.browse(2, 'Choose Image', 'files')
+    if not result:
+        return
+    thumbnail = result
+    thumbnails = plugin.get_storage('thumbnails')
+    thumbnails[path] = thumbnail
+    xbmc.executebuiltin('Container.Refresh')
+
 @plugin.route('/subscribe_folder/<media>/<id>/<label>/<path>/<thumbnail>')
 def subscribe_folder(media,id,label,path,thumbnail):
     folders = plugin.get_storage('folders')
@@ -233,6 +244,7 @@ def index():
         thumbnail = thumbnails[folder]
         context_items = []
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=path))))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_image, path=path))))
         items.append(
         {
             'label': label,
@@ -246,6 +258,7 @@ def index():
         path = url
         context_items = []
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_image, path=path))))
         items.append(
         {
             'label': label,
