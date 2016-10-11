@@ -148,6 +148,7 @@ def subscribe_folder(media,id,label,path,thumbnail):
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
         else:
             fancy_label = "[B]%s[/B]" % label
+            path = plugin.url_for('play',url=path)
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_url, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail))))
 
         items.append(
@@ -201,6 +202,46 @@ def add_addons(media):
         })
     return items
 
+@plugin.route('/favourites')
+def favourites():
+    urls = plugin.get_storage('urls')
+
+    f = xbmcvfs.File("special://profile/favourites.xml","rb")
+    data = f.read()
+    favourites = re.findall("<favourite.*?</favourite>",data)
+    items = []
+    for fav in favourites:
+        fav = re.sub('&quot;','',fav)
+        url = ''
+        thumbnail = ''
+        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+        if match:
+            label = match.group(1)
+            thumbnail = match.group(2)
+            url = match.group(3)
+        else:
+            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
+            if match:
+                label = match.group(1)
+                thumbnail = ''
+                url = match.group(2)
+        if url:
+            context_items = []
+            path = plugin.url_for('execute',url=url)
+            if url in urls:
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
+            else:
+                id = "favourites"
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_url, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail))))
+            items.append(
+            {
+                'label': label,
+                'path': plugin.url_for('execute',url=url),
+                'thumbnail':thumbnail,
+                'context_menu': context_items,
+            })
+    return items
+
 @plugin.route('/add')
 def add():
     items = []
@@ -225,6 +266,14 @@ def add():
             'path': plugin.url_for('add_addons',media=media),
             'thumbnail': thumbnail,
         })
+
+    items.append(
+    {
+        'label': "[B]%s[/B]" % "Favourites",
+        'path': plugin.url_for('favourites'),
+        'thumbnail':get_icon_path('favourites'),
+        #'context_menu': context_items,
+    })
 
     return items
 
@@ -262,7 +311,7 @@ def index():
         items.append(
         {
             'label': label,
-            'path': plugin.url_for('play',url=url),
+            'path': url,#plugin.url_for('play',url=url),
             'thumbnail':thumbnail,
             'context_menu': context_items,
         })
@@ -293,6 +342,9 @@ def index():
                     'thumbnail':thumbnail,
                 })
 
+    if plugin.get_setting('sort.all') == 'true':
+        items = sorted(items, key=lambda item: item['label'])
+
     items.append(
     {
         'label': "Add",
@@ -301,6 +353,8 @@ def index():
     })
 
     plugin.set_content('movies')
+
+
     return items
 
 if __name__ == '__main__':
