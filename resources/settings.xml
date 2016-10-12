@@ -1,8 +1,7 @@
 <settings>
 <category label="All">
-<setting type="lsep" label="Add/Remove Shortcuts with the Context Menu"/>
 <setting type="lsep" label="Kodi Favourites"/>
-<setting id="kodi.favourites" label="Include All Kodi Favourites" type="bool" default="false" />
+<setting id="kodi.favourites" label="Include All Kodi Favourites" type="bool" default="true" />
 <setting type="lsep" label="Sorting"/>
 <setting id="sort.all" label="Sort Everything" type="bool" default="true" />
 </category>
