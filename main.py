@@ -352,8 +352,9 @@ def index():
         'thumbnail':get_icon_path('settings'),
     })
 
-    plugin.set_content('movies')
-
+    view = plugin.get_setting('view.type')
+    if view != "default":
+        plugin.set_content(view)
 
     return items
 
