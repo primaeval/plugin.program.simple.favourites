@@ -20,11 +20,13 @@ big_list_view = False
 def log(v):
     xbmc.log(repr(v))
 
-
 def get_icon_path(icon_name):
-    addon_path = xbmcaddon.Addon().getAddonInfo("path")
-    return os.path.join(addon_path, 'resources', 'img', icon_name+".png")
-
+    addon_name = xbmcaddon.Addon().getAddonInfo('id')
+    if plugin.get_setting('user.icons') == "true":
+        user_icon = "special://profile/addon_data/%s/icons/%s.png" % (addon_name,icon_name)
+        if xbmcvfs.exists(user_icon):
+            return user_icon
+    return "special://home/addons/%s/resources/img/%s.png" % (addon_name,icon_name)
 
 def remove_formatting(label):
     label = re.sub(r"\[/?[BI]\]",'',label)
