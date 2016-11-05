@@ -13,6 +13,7 @@ import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import xbmcplugin
 
 from types import *
+import sys
 
 plugin = Plugin()
 big_list_view = False
@@ -163,7 +164,6 @@ def subscribe_folder(media,id,label,path,thumbnail):
 
     return items
 
-
 @plugin.route('/add_addons/<media>')
 def add_addons(media):
     folders = plugin.get_storage('folders')
@@ -244,6 +244,35 @@ def favourites():
             })
     return items
 
+@plugin.route('/files')
+def files():
+    urls = plugin.get_storage('urls')
+    d = xbmcgui.Dialog()
+    where = d.input('Enter Location (eg c:\ http:// smb:// nfs:// special://)')
+    if not where:
+        return
+    dirs, files = xbmcvfs.listdir(where)
+    items = []
+    for d in dirs:
+        path = "%s/%s" % (where,d)
+        items.append(
+        {
+            'label': "[B]%s[/B]" % d,
+            'path': path,
+            'thumbnail':get_icon_path('folder'),
+            #'context_menu': context_items,
+        })
+    for f in files:
+        path = "%s/%s" % (where,f)
+        items.append(
+        {
+            'label': f,
+            'path': plugin.url_for('play',url=path),
+            'thumbnail':get_icon_path('file'),
+            #'context_menu': context_items,
+        })
+    return items
+
 @plugin.route('/add')
 def add():
     items = []
@@ -268,6 +297,14 @@ def add():
             'path': plugin.url_for('add_addons',media=media),
             'thumbnail': thumbnail,
         })
+
+    items.append(
+    {
+        'label': "[B]%s[/B]" % "Files",
+        'path': plugin.url_for('files'),
+        'thumbnail':get_icon_path('favourites'),
+        #'context_menu': context_items,
+    })
 
     items.append(
     {
@@ -310,10 +347,14 @@ def index():
         context_items = []
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_image, path=path))))
+        if path.endswith('/'):
+            play_path = path
+        else:
+            play_path = plugin.url_for('play',url=url)
         items.append(
         {
             'label': label,
-            'path': url,#plugin.url_for('play',url=url),
+            'path': play_path,
             'thumbnail':thumbnail,
             'context_menu': context_items,
         })
