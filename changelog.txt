@@ -1,5 +1,5 @@
 version 0.0.11
-- Files (enter protocol eg c:\ http:// smb:// nfs:// special://)
+- Files (use protocol eg c:\ http:// smb:// nfs:// special://)
 - Note: files will be filtered depending on where addon was started (Video,Music,Pictures etc)
 
 version 0.0.10
