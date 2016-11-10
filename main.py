@@ -36,6 +36,10 @@ def remove_formatting(label):
 
 @plugin.route('/play/<url>')
 def play(url):
+    head_tail = url.split('://')
+    if len(head_tail) > 1:
+        tail = re.sub('//','/',head_tail[1])
+        url = "%s://%s" % (head_tail[0],tail)
     xbmc.executebuiltin('PlayMedia(%s)' % url)
 
 @plugin.route('/execute/<url>')
@@ -213,7 +217,7 @@ def favourites():
     favourites = re.findall("<favourite.*?</favourite>",data)
     items = []
     for fav in favourites:
-        fav = re.sub('&quot;','',fav)
+        fav = re.sub('&quot;','"',fav)
         url = ''
         thumbnail = ''
         match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
@@ -327,7 +331,7 @@ def index():
         data = f.read()
         favourites = re.findall("<favourite.*?</favourite>",data)
         for fav in favourites:
-            fav = re.sub('&quot;','',fav)
+            fav = re.sub('&quot;','"',fav)
             url = ''
             match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
             if match:
