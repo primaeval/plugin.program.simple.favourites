@@ -388,7 +388,39 @@ def index_of(path=None):
         plugin.set_content(view)
     return items
 
+@plugin.route('/upgrade')
+def upgrade():
+    folders = plugin.get_storage('folders')
+    urls = plugin.get_storage('urls')
+    labels = plugin.get_storage('labels')
+    thumbnails = plugin.get_storage('thumbnails')
+
+    xbmcvfs.mkdirs("special://profile/addon_data/%s/folders/" % (addon_id()))
+    favourites_file = "special://profile/addon_data/%s/folders/favourites.xml" % (addon_id())
+
+    for folder in folders:
+        path = folder
+        label = labels[folder]
+        thumbnail = thumbnails[folder]
+        play_url = escape('ActivateWindow(%s,"%s")' % (window,path))
+        add_favourite(favourites_file, label.encode("utf8"), play_url, thumbnail)
+
+    for url in urls:
+        label = labels[url]
+        thumbnail = thumbnails[url]
+        play_url = escape('PlayMedia("%s")' % (url))
+        add_favourite(favourites_file, label.encode("utf8"), play_url, thumbnail)
+
 if __name__ == '__main__':
+
+    upgraded = xbmcaddon.Addon().getSetting('upgraded')
+    if upgraded != "true":
+        d = xbmcgui.Dialog()
+        result = d.yesno("Addon Upgrade","Import Previous Favourites?")
+        if result:
+            upgrade()
+            plugin.set_setting('upgraded','true')
+
     plugin.run()
     if big_list_view == True:
         view_mode = int(plugin.get_setting('view_mode'))

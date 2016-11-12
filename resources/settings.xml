@@ -1,0 +1,7 @@
+<settings>
+<category label="Upgrade">
+<setting type="lsep" label="The Context Menu addon (context.simple.favourites) will no longer work."/>
+<setting type="lsep" label="Please remove it."/>
+<setting label="Import Previous Favourites" type="action" action="XBMC.RunPlugin(plugin://plugin.program.simple.favourites/upgrade)"/>
+</category>
+</settings>
