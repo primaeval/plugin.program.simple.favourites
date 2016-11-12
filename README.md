@@ -1,3 +1,3 @@
-# plugin.program.simple.favourites
+# plugin.simple.favourites
 
 Simple Favourites

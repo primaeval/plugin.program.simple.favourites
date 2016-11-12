@@ -1,181 +1,278 @@
-from datetime import datetime,timedelta
 from rpc import RPC
 from xbmcswift2 import Plugin
-from xbmcswift2 import actions
-import HTMLParser
-import os
-import random
 import re
 import requests
-import sqlite3
-import time
 import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import xbmcplugin
-
-from types import *
-import sys
 
 plugin = Plugin()
 big_list_view = False
 
+
+def addon_id():
+    return xbmcaddon.Addon().getAddonInfo('id')
+
 def log(v):
     xbmc.log(repr(v))
 
+
 def get_icon_path(icon_name):
-    addon_name = xbmcaddon.Addon().getAddonInfo('id')
     if plugin.get_setting('user.icons') == "true":
-        user_icon = "special://profile/addon_data/%s/icons/%s.png" % (addon_name,icon_name)
+        user_icon = "special://profile/addon_data/%s/icons/%s.png" % (addon_id(),icon_name)
         if xbmcvfs.exists(user_icon):
             return user_icon
-    return "special://home/addons/%s/resources/img/%s.png" % (addon_name,icon_name)
+    return "special://home/addons/%s/resources/img/%s.png" % (addon_id(),icon_name)
 
 def remove_formatting(label):
     label = re.sub(r"\[/?[BI]\]",'',label)
     label = re.sub(r"\[/?COLOR.*?\]",'',label)
     return label
 
+def escape( str ):
+    str = str.replace("&", "&amp;")
+    str = str.replace("<", "&lt;")
+    str = str.replace(">", "&gt;")
+    str = str.replace("\"", "&quot;")
+    return str
+
+def unescape( str ):
+    str = str.replace("&lt;","<")
+    str = str.replace("&gt;",">")
+    str = str.replace("&quot;","\"")
+    str = str.replace("&amp;","&")
+    return str
+
 @plugin.route('/play/<url>')
 def play(url):
-    head_tail = url.split('://')
-    if len(head_tail) > 1:
-        tail = re.sub('//','/',head_tail[1])
-        url = "%s://%s" % (head_tail[0],tail)
-    xbmc.executebuiltin('PlayMedia(%s)' % url)
+    xbmc.executebuiltin('PlayMedia("%s")' % url)
 
 @plugin.route('/execute/<url>')
 def execute(url):
     xbmc.executebuiltin(url)
 
-@plugin.route('/add_url/<id>/<label>/<path>/<thumbnail>')
-def add_url(id,label,path,thumbnail):
-    labels = plugin.get_storage('labels')
-    thumbnails = plugin.get_storage('thumbnails')
-    urls = plugin.get_storage('urls')
-    urls[path] = id
-    labels[path] = label
-    thumbnails[path] = thumbnail
+@plugin.route('/add_favourite/<favourites_file>/<name>/<url>/<thumbnail>')
+def add_favourite(favourites_file,name,url,thumbnail):
+    f = xbmcvfs.File(favourites_file,"rb")
+    data = f.read()
+    f.close()
+    if not data:
+        data = '<favourites>\n</favourites>'
+    fav = '    <favourite name="%s" thumb="%s">%s</favourite>\n</favourites>' % (name,thumbnail,url)
+    data = data.replace('</favourites>',fav)
+    f = xbmcvfs.File(favourites_file,"wb")
+    f.write(data)
+    f.close()
     xbmc.executebuiltin('Container.Refresh')
 
-@plugin.route('/remove_url/<path>')
-def remove_url(path):
-    labels = plugin.get_storage('labels')
-    thumbnails = plugin.get_storage('thumbnails')
-    urls = plugin.get_storage('urls')
-    del urls[path]
-    del labels[path]
-    del thumbnails[path]
+@plugin.route('/favourites/<favourites_file>/<name>/<url>')
+def remove_favourite(favourites_file,name,url):
+    f = xbmcvfs.File(favourites_file,"rb")
+    data = f.read()
+    f.close()
+    data = re.sub('.*<favourite name="%s".*?>%s</favourite>.*\n' % (re.escape(name),re.escape(url)),'',data)
+    f = xbmcvfs.File(favourites_file,"wb")
+    f.write(data)
+    f.close()
     xbmc.executebuiltin('Container.Refresh')
 
-@plugin.route('/add_folder/<id>/<label>/<path>/<thumbnail>')
-def add_folder(id,label,path,thumbnail):
+@plugin.route('/rename_favourite/<favourites_file>/<name>/<fav>')
+def rename_favourite(favourites_file,name,fav):
     d = xbmcgui.Dialog()
-    result = d.input("Rename Shortcut",label)
-    if not result:
+    dialog_name = unescape(name)
+    new_name = d.input("New Name for: %s" % dialog_name,dialog_name)
+    if not new_name:
         return
-    label = result
-    folders = plugin.get_storage('folders')
-    labels = plugin.get_storage('labels')
-    thumbnails = plugin.get_storage('thumbnails')
-    folders[path] = id
-    labels[path] = label
-    thumbnails[path] = thumbnail
+    f = xbmcvfs.File(favourites_file,"rb")
+    data = f.read()
+    f.close()
+    new_fav = fav.replace(name,escape(new_name))
+    data = data.replace(fav,new_fav)
+    f = xbmcvfs.File(favourites_file,"wb")
+    f.write(data)
+    f.close()
     xbmc.executebuiltin('Container.Refresh')
+
+@plugin.route('/change_favourite_thumbnail/<favourites_file>/<thumbnail>/<fav>')
+def change_favourite_thumbnail(favourites_file,thumbnail,fav):
+    d = xbmcgui.Dialog()
+    new_thumbnail = d.browse(2, 'Choose Image', 'files')
+    if not new_thumbnail:
+        return
+    f = xbmcvfs.File(favourites_file,"rb")
+    data = f.read()
+    f.close()
+    new_fav = fav.replace(thumbnail,escape(new_thumbnail))
+    data = data.replace(fav,new_fav)
+    f = xbmcvfs.File(favourites_file,"wb")
+    f.write(data)
+    f.close()
+    xbmc.executebuiltin('Container.Refresh')
+
+@plugin.route('/favourites/<folder_path>')
+def favourites(folder_path):
+    items = []
+    favourites_file = "%sfavourites.xml" % folder_path
+    f = xbmcvfs.File(favourites_file,"rb")
+    data = f.read()
+    favourites = re.findall("<favourite.*?</favourite>",data)
+    for fav in favourites:
+        url = ''
+        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+        if match:
+            label = match.group(1)
+            thumbnail = match.group(2)
+            url = match.group(3)
+        else:
+            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
+            if match:
+                label = match.group(1)
+                thumbnail = get_icon_path('unknown')
+                url = match.group(2)
+        if url:
+            context_items = []
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
+            items.append(
+            {
+                'label': unescape(label),
+                'path': plugin.url_for('execute',url=unescape(url)),
+                #'path': plugin.url_for('play',url=unescape(url)),
+                'thumbnail':unescape(thumbnail),
+                'context_menu': context_items,
+            })
+    return items
+
+@plugin.route('/add_favourites/<path>')
+def add_favourites(path):
+    items = []
+    kodi_favourites = "special://profile/favourites.xml"
+    output_file = "%sfavourites.xml" % path
+    f = xbmcvfs.File(kodi_favourites,"rb")
+    data = f.read()
+    favourites = re.findall("<favourite.*?</favourite>",data)
+    for fav in favourites:
+        url = ''
+        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+        if match:
+            label = match.group(1)
+            thumbnail = match.group(2)
+            url = match.group(3)
+        else:
+            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
+            if match:
+                label = match.group(1)
+                thumbnail = get_icon_path('unknown')
+                url = match.group(2)
+        if url:
+            context_items = []
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=output_file, name=label, url=url, thumbnail=thumbnail))))
+            items.append(
+            {
+                'label': unescape(label),
+                'path': plugin.url_for('execute',url=unescape(url)),
+                'thumbnail':unescape(thumbnail),
+                'context_menu': context_items,
+            })
+    return items
+
+@plugin.route('/add_folder/<path>')
+def add_folder(path):
+    d = xbmcgui.Dialog()
+    folder_name = d.input("New Folder")
+    if not folder_name:
+        return
+    path = "%s%s/" % (path,folder_name)
+    xbmcvfs.mkdirs(path)
+    folder_icon = get_icon_path('folder')
+    icon_file = path+"icon.txt"
+    xbmcvfs.File(icon_file,"wb").write(folder_icon)
+
+def remove_files(path):
+    dirs,files = xbmcvfs.listdir(path)
+    for d in dirs:
+        remove_files("%s%s/" % (path,d))
+    for f in files:
+        xbmcvfs.delete("%s%s" % (path,f))
+    xbmcvfs.rmdir(path)
+
 
 @plugin.route('/remove_folder/<path>')
 def remove_folder(path):
-    folders = plugin.get_storage('folders')
-    labels = plugin.get_storage('labels')
-    thumbnails = plugin.get_storage('thumbnails')
-    del folders[path]
-    del labels[path]
-    del thumbnails[path]
-    xbmc.executebuiltin('Container.Refresh')
-
-@plugin.route('/change_image/<path>')
-def change_image(path):
     d = xbmcgui.Dialog()
-    result = d.browse(2, 'Choose Image', 'files')
-    if not result:
+    yes = d.yesno("Remove Folder", "Are you sure?")
+    if not yes:
         return
-    thumbnail = result
-    thumbnails = plugin.get_storage('thumbnails')
-    thumbnails[path] = thumbnail
+    remove_files(path)
     xbmc.executebuiltin('Container.Refresh')
 
-@plugin.route('/subscribe_folder/<media>/<id>/<label>/<path>/<thumbnail>')
-def subscribe_folder(media,id,label,path,thumbnail):
-    folders = plugin.get_storage('folders')
-    urls = plugin.get_storage('urls')
+@plugin.route('/rename_folder/<path>/<name>')
+def rename_folder(path,name):
+    d = xbmcgui.Dialog()
+    new_name = d.input("New Name for: %s" % name,name)
+    if not new_name:
+        return
+    old_folder = "%s%s/" % (path,name)
+    new_folder = "%s%s/" % (path,new_name)
+    xbmcvfs.rename(old_folder,new_folder)
+    xbmc.executebuiltin('Container.Refresh')
+
+@plugin.route('/change_folder_thumbnail/<path>')
+def change_folder_thumbnail(path):
+    d = xbmcgui.Dialog()
+    new_thumbnail = d.browse(2, 'Choose Image', 'files')
+    if not new_thumbnail:
+        return
+    icon_file = "%sicon.txt" % path
+    xbmcvfs.File(icon_file,"wb").write(new_thumbnail)
+    xbmc.executebuiltin('Container.Refresh')
+
+@plugin.route('/add_addons_folder/<favourites_file>/<media>/<path>')
+def add_addons_folder(favourites_file,media,path):
     try:
         response = RPC.files.get_directory(media=media, directory=path, properties=["thumbnail"])
     except:
         return
     files = response["files"]
-    dirs = dict([[remove_formatting(f["label"]), f["file"]] for f in files if f["filetype"] == "directory"])
-    thumbnails = dict([f["file"], f["thumbnail"]] for f in files)
-    links = {}
+    log(files)
+    dir_items = []
+    file_items = []
     for f in files:
-        if f["filetype"] == "file":
-            label = remove_formatting(f["label"])
-            file = f["file"]
-            while (label in links):
-                label = "%s." % label
-            links[label] = file
-
-    items = []
-
-    for label in sorted(dirs):
-        path = dirs[label]
-        file_thumbnail = thumbnails[path]
-        if file_thumbnail:
-            thumbnail = file_thumbnail
+        label = remove_formatting(f['label'])
+        url = f['file']
+        thumbnail = f['thumbnail']
+        if not thumbnail:
+            thumbnail = get_icon_path('unknown')
         context_items = []
-        if path in folders:
-            fancy_label = "[COLOR yellow][B]%s[/B][/COLOR] " % label
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=path))))
+        if f['filetype'] == 'directory':
+            if media == "video":
+                window = "10025"
+            elif media in ["music","audio"]:
+                window = "10502"
+            else:
+                window = "10001"
+            play_url = escape('ActivateWindow(%s,"%s")' % (window,url))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
+            dir_items.append({
+                'label': "[B]%s[/B]" % label,
+                'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media="files", path=url),
+                'thumbnail': f['thumbnail'],
+                'context_menu': context_items,
+            })
         else:
-            fancy_label = "[B]%s[/B]" % label
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_folder, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail))))
-        items.append(
-        {
-            'label': fancy_label,
-            'path': plugin.url_for('subscribe_folder',media=media, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail),
-            'thumbnail': thumbnail,
-            'context_menu': context_items,
-        })
+            play_url = escape('PlayMedia("%s")' % url)
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
+            file_items.append({
+                'label': "%s" % label,
+                'path': plugin.url_for('play',url=url),
+                'thumbnail': f['thumbnail'],
+                'context_menu': context_items,
+            })
+    return sorted(dir_items, key=lambda x: x["label"].lower()) + sorted(file_items, key=lambda x: x["label"].lower())
 
-    for label in sorted(links):
-        path = links[label]
-        file_thumbnail = thumbnails[path]
-        if file_thumbnail:
-            thumbnail = file_thumbnail
-        context_items = []
-        if path in urls:
-            fancy_label = "[COLOR yellow][B]%s[/B][/COLOR] " % label
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
-        else:
-            fancy_label = "[B]%s[/B]" % label
-            path = plugin.url_for('play',url=path)
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_url, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail))))
 
-        items.append(
-        {
-            'label': label,
-            'path': plugin.url_for('play',url=links[label]),
-            'thumbnail': thumbnail,
-            'context_menu': context_items,
-        })
-
-    return items
-
-@plugin.route('/add_addons/<media>')
-def add_addons(media):
-    folders = plugin.get_storage('folders')
-    ids = {}
-    for folder in folders:
-        id = folders[folder]
-        ids[id] = id
-
+@plugin.route('/add_addons/<favourites_file>/<media>')
+def add_addons(favourites_file, media):
     type = "xbmc.addon.%s" % media
 
     response = RPC.addons.get_addons(type=type,properties=["name", "thumbnail"])
@@ -191,181 +288,104 @@ def add_addons(media):
         label = addon['name']
         id = addon['addonid']
         thumbnail = addon['thumbnail']
+        if not thumbnail:
+            thumbnail = get_icon_path('unknown')
         path = "plugin://%s" % id
         context_items = []
-        if id in ids:
-            fancy_label = "[COLOR yellow][B]%s[/B][/COLOR] " % label
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=path))))
+        fancy_label = "[B]%s[/B]" % label
+        if media == "video":
+            window = "10025"
         else:
-            fancy_label = "[B]%s[/B]" % label
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_folder, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail))))
+            window = "10502"
+        play_url = escape('ActivateWindow(%s,"%s")' % (window,path))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
         items.append(
         {
             'label': fancy_label,
-            'path': plugin.url_for('subscribe_folder',media="files", id=id, label=label, path=path, thumbnail=thumbnail),
+            'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media="files", path=path),
             'thumbnail': thumbnail,
             'context_menu': context_items,
         })
     return items
 
-@plugin.route('/favourites')
-def favourites():
-    urls = plugin.get_storage('urls')
-
-    f = xbmcvfs.File("special://profile/favourites.xml","rb")
-    data = f.read()
-    favourites = re.findall("<favourite.*?</favourite>",data)
+@plugin.route('/add/<path>')
+def add(path):
+    favourites_file = "%sfavourites.xml" % path
     items = []
-    for fav in favourites:
-        fav = re.sub('&quot;','"',fav)
-        url = ''
-        thumbnail = ''
-        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
-        if match:
-            label = match.group(1)
-            thumbnail = match.group(2)
-            url = match.group(3)
-        else:
-            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
-            if match:
-                label = match.group(1)
-                thumbnail = ''
-                url = match.group(2)
-        if url:
-            context_items = []
-            path = plugin.url_for('execute',url=url)
-            if url in urls:
-                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
-            else:
-                id = "favourites"
-                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_url, id=id, label=label.encode("utf8"), path=path, thumbnail=thumbnail))))
-            items.append(
-            {
-                'label': label,
-                'path': plugin.url_for('execute',url=url),
-                'thumbnail':thumbnail,
-                'context_menu': context_items,
-            })
-    return items
 
-@plugin.route('/add')
-def add():
-    items = []
     for media in ["video", "music"]:
         label = media
-        id = "none"
-        path = "library://%s" % media
+        lib_path = "library://%s" % media
         thumbnail = get_icon_path(media)
         items.append(
         {
-            'label': "[B]%s[/B]" % media.title(),
-            'path': plugin.url_for('subscribe_folder',media=media, id=id, label=label, path=path, thumbnail=thumbnail),
+            'label': "[B]%s Library[/B]" % media.title(),
+            'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media=media, path=lib_path),
             'thumbnail': thumbnail,
         })
 
-    for media in ["video", "audio"]:
+    for media in ["video", "audio", "executable", "image"]:
         label = media
         thumbnail = get_icon_path(media)
         items.append(
         {
             'label': "[B]%s Addons[/B]" % media.title(),
-            'path': plugin.url_for('add_addons',media=media),
+            'path': plugin.url_for('add_addons', favourites_file=favourites_file, media=media),
             'thumbnail': thumbnail,
         })
 
     items.append(
     {
-        'label': "[B]%s[/B]" % "Favourites",
-        'path': plugin.url_for('favourites'),
+        'label': "[B]Favourites[/B]",
+        'path': plugin.url_for('add_favourites',path=path),
         'thumbnail':get_icon_path('favourites'),
-        #'context_menu': context_items,
     })
 
+    items.append(
+    {
+        'label': "New Folder",
+        'path': plugin.url_for('add_folder',path=path),
+        'thumbnail':get_icon_path('settings'),
+    })
     return items
-
 
 @plugin.route('/')
 def index():
+    folder_path = "special://profile/addon_data/%s/folders/" % (addon_id())
+    return index_of(folder_path)
+
+@plugin.route('/index_of/<path>')
+def index_of(path=None):
     items = []
 
-    folders = plugin.get_storage('folders')
-    urls = plugin.get_storage('urls')
-    labels = plugin.get_storage('labels')
-    thumbnails = plugin.get_storage('thumbnails')
-
-    for folder in sorted(folders, key=lambda x: labels[x]):
-        path = folder
-        label = labels[folder]
-        thumbnail = thumbnails[folder]
+    folders, files = xbmcvfs.listdir(path)
+    for folder in sorted(folders, key=lambda x: x.lower()):
+        folder_path = "%s%s/" % (path,folder)
+        thumbnail_file = "%sicon.txt" % folder_path
+        thumbnail = xbmcvfs.File(thumbnail_file,"rb").read()
         context_items = []
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=path))))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_image, path=path))))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=folder_path))))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_folder, path=path, name=folder))))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_thumbnail, path=folder_path))))
         items.append(
         {
-            'label': label,
-            'path': folder,
+            'label': folder,
+            'path': plugin.url_for('index_of', path=folder_path),
             'thumbnail':thumbnail,
             'context_menu': context_items,
         })
-    for url in sorted(urls, key=lambda x: labels[x]):
-        label = labels[url]
-        thumbnail = thumbnails[url]
-        path = url
-        context_items = []
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_url, path=path))))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_image, path=path))))
-        if path.endswith('/') or path.startswith('plugin://'):
-            play_path = path
-        else:
-            play_path = plugin.url_for('play',url=url)
-        items.append(
-        {
-            'label': label,
-            'path': play_path,
-            'thumbnail':thumbnail,
-            'context_menu': context_items,
-        })
-
-    if plugin.get_setting('kodi.favourites') == 'true':
-        f = xbmcvfs.File("special://profile/favourites.xml","rb")
-        data = f.read()
-        favourites = re.findall("<favourite.*?</favourite>",data)
-        for fav in favourites:
-            fav = re.sub('&quot;','"',fav)
-            url = ''
-            match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
-            if match:
-                label = match.group(1)
-                thumbnail = match.group(2)
-                url = match.group(3)
-            else:
-                match = re.search('<favourite name="(.*?)">(.*?)<',fav)
-                if match:
-                    label = match.group(1)
-                    thumbnail = ''
-                    url = match.group(2)
-            if url:
-                items.append(
-                {
-                    'label': label,
-                    'path': plugin.url_for('execute',url=url),
-                    'thumbnail':thumbnail,
-                })
-
-    if plugin.get_setting('sort.all') == 'true':
-        items = sorted(items, key=lambda item: item['label'])
+    items = items + sorted(favourites(path), key=lambda x: x["label"].lower())
 
     items.append(
     {
         'label': "Add",
-        'path': plugin.url_for('add'),
+        'path': plugin.url_for('add', path=path),
         'thumbnail':get_icon_path('settings'),
     })
 
     view = plugin.get_setting('view.type')
     if view != "default":
         plugin.set_content(view)
-
     return items
 
 if __name__ == '__main__':
