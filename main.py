@@ -379,7 +379,11 @@ def index_of(path=None):
             'thumbnail':thumbnail,
             'context_menu': context_items,
         })
-    items = items + sorted(favourites(path), key=lambda x: x["label"].lower())
+
+    if plugin.get_setting('sort') == 'true':
+        items = items + sorted(favourites(path), key=lambda x: x["label"].lower())
+    else:
+        items = items + favourites(path)
 
     items.append(
     {

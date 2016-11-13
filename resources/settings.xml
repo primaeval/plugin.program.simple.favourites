@@ -4,4 +4,7 @@
 <setting type="lsep" label="Please remove it."/>
 <setting label="Import Previous Favourites" type="action" action="XBMC.RunPlugin(plugin://plugin.program.simple.favourites/upgrade)"/>
 </category>
+<category label="Appearance">
+<setting id="sort" label="Sort" type="bool" default="true" />
+</category>
 </settings>
