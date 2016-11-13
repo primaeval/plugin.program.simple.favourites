@@ -299,7 +299,10 @@ def add_addons(favourites_file, media):
             window = "10025"
         else:
             window = "10502"
-        play_url = escape('ActivateWindow(%s,"%s")' % (window,path))
+        if id.startswith("script"):
+            play_url = escape('RunScript("%s")' % (id))
+        else:
+            play_url = escape('ActivateWindow(%s,"%s")' % (window,path))
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
         items.append(
         {
