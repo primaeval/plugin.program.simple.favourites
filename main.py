@@ -413,13 +413,6 @@ def upgrade():
 
 if __name__ == '__main__':
 
-    upgraded = xbmcaddon.Addon().getSetting('upgraded')
-    if upgraded != "true":
-        d = xbmcgui.Dialog()
-        result = d.yesno("Addon Upgrade","Import Previous Favourites?")
-        if result:
-            upgrade()
-            plugin.set_setting('upgraded','true')
 
     plugin.run()
     if big_list_view == True:
