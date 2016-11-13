@@ -173,7 +173,8 @@ def favourites(folder_path):
                 url = match.group(2)
         if url:
             context_items = []
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=folder_path))))
+            if plugin.get_setting('add') == 'false':
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=folder_path))))
             if plugin.get_setting('sort') == 'false':
                 context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
@@ -412,7 +413,8 @@ def index_of(path=None):
         thumbnail_file = "%sicon.txt" % folder_path
         thumbnail = xbmcvfs.File(thumbnail_file,"rb").read()
         context_items = []
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=path))))
+        if plugin.get_setting('add') == 'false':
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=path))))
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=folder_path))))
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_folder, path=path, name=folder))))
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_thumbnail, path=folder_path))))
