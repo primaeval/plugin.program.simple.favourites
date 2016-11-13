@@ -52,6 +52,7 @@ def execute(url):
 
 @plugin.route('/add_favourite/<favourites_file>/<name>/<url>/<thumbnail>')
 def add_favourite(favourites_file,name,url,thumbnail):
+    xbmcvfs.mkdirs("special://profile/addon_data/%s/folders/" % (addon_id()))
     f = xbmcvfs.File(favourites_file,"rb")
     data = f.read()
     f.close()
