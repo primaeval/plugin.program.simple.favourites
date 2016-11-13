@@ -173,7 +173,8 @@ def favourites(folder_path):
                 url = match.group(2)
         if url:
             context_items = []
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
+            if plugin.get_setting('sort') == 'false':
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
