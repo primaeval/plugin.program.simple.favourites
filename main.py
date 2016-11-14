@@ -107,6 +107,20 @@ def move_favourite(favourites_file,name,url):
     f.close()
     xbmc.executebuiltin('Container.Refresh')
 
+@plugin.route('/move_favourite_to_folder/<favourites_file>/<name>/<url>/<thumbnail>')
+def move_favourite_to_folder(favourites_file,name,url,thumbnail):
+    d = xbmcgui.Dialog()
+    top_folder = 'special://profile/addon_data/%s/folders/' % addon_id()
+    where = d.browse(0, 'Choose Folder', 'files', '', False, True, top_folder)
+    if not where:
+        return
+    if not where.startswith(top_folder):
+        d.notification("Error","Please keep to the folders path")
+        return
+    remove_favourite(favourites_file,name,url)
+    favourites_file = "%sfavourites.xml" % where
+    add_favourite(favourites_file,name,url,thumbnail)
+
 @plugin.route('/remove_favourite/<favourites_file>/<name>/<url>')
 def remove_favourite(favourites_file,name,url):
     f = xbmcvfs.File(favourites_file,"rb")
@@ -177,6 +191,7 @@ def favourites(folder_path):
                 context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=folder_path))))
             if plugin.get_setting('sort') == 'false':
                 context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move to Folder', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite_to_folder, favourites_file=favourites_file, name=label, url=url, thumbnail=thumbnail))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
