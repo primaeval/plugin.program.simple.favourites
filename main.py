@@ -476,6 +476,6 @@ if __name__ == '__main__':
         except: pass
 
     plugin.run()
-    if big_list_view == True:
-        view_mode = int(plugin.get_setting('view_mode'))
-        plugin.set_view_mode(view_mode)
+    #if big_list_view == True:
+    #    view_mode = int(plugin.get_setting('view_mode'))
+    #    plugin.set_view_mode(view_mode)
