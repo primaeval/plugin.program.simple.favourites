@@ -108,8 +108,8 @@ def move_favourite(favourites_file,name,url):
     f.close()
     xbmc.executebuiltin('Container.Refresh')
 
-@plugin.route('/move_favourite_to_folder/<favourites_file>/<name>/<url>/<thumbnail>')
-def move_favourite_to_folder(favourites_file,name,url,thumbnail):
+@plugin.route('/move_favourite_to_folder/<favourites_file>/<name>/<url>/<thumbnail>/<fanart>')
+def move_favourite_to_folder(favourites_file,name,url,thumbnail,fanart):
     d = xbmcgui.Dialog()
     top_folder = 'special://profile/addon_data/%s/folders/' % addon_id()
     where = d.browse(0, 'Choose Folder', 'files', '', False, True, top_folder)
@@ -120,7 +120,7 @@ def move_favourite_to_folder(favourites_file,name,url,thumbnail):
         return
     remove_favourite(favourites_file,name,url)
     favourites_file = "%sfavourites.xml" % where
-    add_favourite(favourites_file,name,url,thumbnail)
+    add_favourite(favourites_file,name,url,thumbnail,fanart)
 
 @plugin.route('/remove_favourite/<favourites_file>/<name>/<url>')
 def remove_favourite(favourites_file,name,url):
@@ -143,7 +143,7 @@ def rename_favourite(favourites_file,name,fav):
     f = xbmcvfs.File(favourites_file,"rb")
     data = f.read()
     f.close()
-    new_fav = fav.replace(name,escape(new_name))
+    new_fav = fav.replace('name="%s"' % name, 'name="%s"' % escape(new_name))
     data = data.replace(fav,new_fav)
     f = xbmcvfs.File(favourites_file,"wb")
     f.write(data)
@@ -159,7 +159,7 @@ def change_favourite_thumbnail(favourites_file,thumbnail,fav):
     f = xbmcvfs.File(favourites_file,"rb")
     data = f.read()
     f.close()
-    new_fav = fav.replace(thumbnail,escape(new_thumbnail))
+    new_fav = fav.replace('thumb="%s"' % thumbnail, 'thumb="%s"' % escape(new_thumbnail))
     data = data.replace(fav,new_fav)
     f = xbmcvfs.File(favourites_file,"wb")
     f.write(data)
@@ -175,7 +175,7 @@ def change_favourite_fanart(favourites_file,fanart,fav):
     f = xbmcvfs.File(favourites_file,"rb")
     data = f.read()
     f.close()
-    new_fav = fav.replace(fanart,escape(new_fanart))
+    new_fav = fav.replace('fanart="%s"' % fanart, 'fanart="%s"' % escape(new_fanart))
     data = data.replace(fav,new_fav)
     f = xbmcvfs.File(favourites_file,"wb")
     f.write(data)
@@ -212,7 +212,7 @@ def favourites(folder_path):
                 context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=folder_path))))
             if plugin.get_setting('sort') == 'false':
                 context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move to Folder', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite_to_folder, favourites_file=favourites_file, name=label, url=url, thumbnail=thumbnail))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move to Folder', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite_to_folder, favourites_file=favourites_file, name=label, url=url, thumbnail=thumbnail, fanart=fanart))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
