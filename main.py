@@ -77,32 +77,37 @@ def move_favourite(favourites_file,name,url):
     favs = []
     for fav in favourites:
         fav_url = ''
-        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+        match = re.search('>(.*?)<',fav)
+        if match:
+            fav_url = match.group(1)
+        label = ''
+        match = re.search('name="(.*?)"',fav)
         if match:
             label = match.group(1)
-            thumbnail = match.group(2)
-            fav_url = match.group(3)
-        else:
-            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
-            if match:
-                label = match.group(1)
-                thumbnail = get_icon_path('unknown')
-                fav_url = match.group(2)
+        thumbnail = get_icon_path('unknown')
+        match = re.search('thumb="(.*?)"',fav)
+        if match:
+            thumbnail = match.group(1)
+        fanart = ''
+        match = re.search('fanart="(.*?)"',fav)
+        if match:
+            fanart = match.group(1)
         if url == fav_url:
             fav_thumbnail = thumbnail
+            fav_fanart = fanart
             continue
-        favs.append((label,thumbnail,fav_url))
+        favs.append((label,thumbnail,fanart,fav_url))
 
     labels = [x[0] for x in favs]
     d = xbmcgui.Dialog()
     where = d.select("Move [ %s ] After" % name,labels)
     if where > -1 and where < len(favs):
-        favs.insert(where+1,(name,fav_thumbnail,url))
+        favs.insert(where+1,(name,fav_thumbnail,fav_fanart,url))
 
     f = xbmcvfs.File(favourites_file,"wb")
     f.write("<favourites>\n")
     for fav in favs:
-        str = '    <favourite name="%s" thumb="%s">%s</favourite>\n' % fav
+        str = '    <favourite name="%s" thumb="%s" fanart="%s">%s</favourite>\n' % fav
         f.write(str)
     f.write("</favourites>")
     f.close()
