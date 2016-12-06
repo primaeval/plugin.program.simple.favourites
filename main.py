@@ -49,6 +49,7 @@ def play(url):
 
 @plugin.route('/execute/<url>')
 def execute(url):
+    #url = 'Container.Update(%s,replace)' % url
     xbmc.executebuiltin(url)
 
 @plugin.route('/add_favourite/<favourites_file>/<name>/<url>/<thumbnail>')
@@ -307,16 +308,16 @@ def add_addons_folder(favourites_file,media,path):
         context_items = []
         if f['filetype'] == 'directory':
             if media == "video":
-                window = "10025"
+                window = "videos"
             elif media in ["music","audio"]:
-                window = "10502"
+                window = "music"
             else:
-                window = "10001"
-            play_url = escape('ActivateWindow(%s,"%s")' % (window,url))
+                window = "programs"
+            play_url = escape('ActivateWindow(%s,"%s",return)' % (window,url))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
             dir_items.append({
                 'label': "[B]%s[/B]" % label,
-                'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media="files", path=url),
+                'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media=media, path=url),
                 'thumbnail': f['thumbnail'],
                 'context_menu': context_items,
             })
@@ -355,18 +356,20 @@ def add_addons(favourites_file, media):
         context_items = []
         fancy_label = "[B]%s[/B]" % label
         if media == "video":
-            window = "10025"
+            window = "videos"
+        elif media == "music":
+            window = "music"
         else:
-            window = "10502"
+            window = "programs"
         if id.startswith("script"):
             play_url = escape('RunScript("%s")' % (id))
         else:
-            play_url = escape('ActivateWindow(%s,"%s")' % (window,path))
+            play_url = escape('ActivateWindow(%s,"%s",return)' % (window,path))
         context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
         items.append(
         {
             'label': fancy_label,
-            'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media="files", path=path),
+            'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media=media, path=path),
             'thumbnail': thumbnail,
             'context_menu': context_items,
         })
@@ -459,28 +462,6 @@ def index_of(path=None):
         plugin.set_content(view)
     return items
 
-@plugin.route('/upgrade')
-def upgrade():
-    folders = plugin.get_storage('folders')
-    urls = plugin.get_storage('urls')
-    labels = plugin.get_storage('labels')
-    thumbnails = plugin.get_storage('thumbnails')
-
-    xbmcvfs.mkdirs("special://profile/addon_data/%s/folders/" % (addon_id()))
-    favourites_file = "special://profile/addon_data/%s/folders/favourites.xml" % (addon_id())
-
-    for folder in folders:
-        path = folder
-        label = labels[folder]
-        thumbnail = thumbnails[folder]
-        play_url = escape('ActivateWindow(%s,"%s")' % (window,path))
-        add_favourite(favourites_file, label.encode("utf8"), play_url, thumbnail)
-
-    for url in urls:
-        label = labels[url]
-        thumbnail = thumbnails[url]
-        play_url = escape('PlayMedia("%s")' % (url))
-        add_favourite(favourites_file, label.encode("utf8"), play_url, thumbnail)
 
 if __name__ == '__main__':
 
