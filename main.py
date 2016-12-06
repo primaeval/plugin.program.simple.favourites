@@ -243,27 +243,33 @@ def add_favourites(path):
     favourites = re.findall("<favourite.*?</favourite>",data)
     for fav in favourites:
         url = ''
-        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+        match = re.search('>(.*?)<',fav)
+        if match:
+            url = match.group(1)
+        label = ''
+        match = re.search('name="(.*?)"',fav)
         if match:
             label = match.group(1)
-            thumbnail = match.group(2)
-            url = match.group(3)
-        else:
-            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
-            if match:
-                label = match.group(1)
-                thumbnail = get_icon_path('unknown')
-                url = match.group(2)
+        thumbnail = get_icon_path('unknown')
+        match = re.search('thumb="(.*?)"',fav)
+        if match:
+            thumbnail = match.group(1)
+        fanart = ''
+        match = re.search('fanart="(.*?)"',fav)
+        if match:
+            fanart = match.group(1)
         if url:
             context_items = []
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=output_file, name=label, url=url, thumbnail=thumbnail, fanart=fanart))))
-            items.append(
-            {
+            item = {
                 'label': unescape(label),
                 'path': plugin.url_for('execute',url=unescape(url)),
                 'thumbnail':unescape(thumbnail),
                 'context_menu': context_items,
-            })
+            }
+            if fanart:
+                item['properties'] = {'Fanart_Image':fanart}
+            items.append(item)
     return items
 
 @plugin.route('/add_folder/<path>')
