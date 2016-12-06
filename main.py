@@ -87,10 +87,12 @@ def move_favourite(favourites_file,name,url):
         match = re.search('thumb="(.*?)"',fav)
         if match:
             thumbnail = match.group(1)
-        fanart = ''
+        fanart = 'none'
         match = re.search('fanart="(.*?)"',fav)
         if match:
             fanart = match.group(1)
+        if not fanart.strip():
+            fanart = 'none'
         if url == fav_url:
             fav_thumbnail = thumbnail
             fav_fanart = fanart
@@ -206,10 +208,12 @@ def favourites(folder_path):
         match = re.search('thumb="(.*?)"',fav)
         if match:
             thumbnail = match.group(1)
-        fanart = ''
+        fanart = 'none'
         match = re.search('fanart="(.*?)"',fav)
         if match:
             fanart = match.group(1)
+        if not fanart.strip():
+            fanart = 'none'
         if url:
             context_items = []
             if plugin.get_setting('edit') == 'true':
@@ -228,7 +232,7 @@ def favourites(folder_path):
                 'thumbnail':unescape(thumbnail),
                 'context_menu': context_items,
             }
-            if fanart:
+            if fanart != 'none':
                 item['properties'] = {'Fanart_Image':fanart}
             items.append(item)
     return items
@@ -254,10 +258,12 @@ def add_favourites(path):
         match = re.search('thumb="(.*?)"',fav)
         if match:
             thumbnail = match.group(1)
-        fanart = ''
+        fanart = 'none'
         match = re.search('fanart="(.*?)"',fav)
         if match:
             fanart = match.group(1)
+        if not fanart.strip():
+            fanart = 'none'
         if url:
             context_items = []
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=output_file, name=label, url=url, thumbnail=thumbnail, fanart=fanart))))
@@ -267,7 +273,7 @@ def add_favourites(path):
                 'thumbnail':unescape(thumbnail),
                 'context_menu': context_items,
             }
-            if fanart:
+            if fanart != 'none':
                 item['properties'] = {'Fanart_Image':fanart}
             items.append(item)
     return items
@@ -284,7 +290,7 @@ def add_folder(path):
     icon_file = path+"icon.txt"
     xbmcvfs.File(icon_file,"wb").write(folder_icon)
     fanart_file = path+"fanart.txt"
-    xbmcvfs.File(fanart_file,"wb").write('')
+    xbmcvfs.File(fanart_file,"wb").write('none')
 
 def remove_files(path):
     dirs,files = xbmcvfs.listdir(path)
@@ -350,7 +356,9 @@ def add_addons_folder(favourites_file,media,path):
         thumbnail = f['thumbnail']
         if not thumbnail:
             thumbnail = get_icon_path('unknown')
-        fanart = f.get('fanart','')
+        fanart = f.get('fanart','none')
+        if not fanart.strip():
+            fanart = 'none'
         context_items = []
         if f['filetype'] == 'directory':
             if media == "video":
@@ -374,7 +382,7 @@ def add_addons_folder(favourites_file,media,path):
                 'thumbnail': f['thumbnail'],
                 'context_menu': context_items,
             }
-            if fanart:
+            if fanart != 'none':
                 item['properties'] = {'Fanart_Image':fanart}
             dir_items.append(item)
         else:
@@ -386,7 +394,7 @@ def add_addons_folder(favourites_file,media,path):
                 'thumbnail': f['thumbnail'],
                 'context_menu': context_items,
             }
-            if fanart:
+            if fanart != 'none':
                 item['properties'] = {'Fanart_Image':fanart}
             file_items.append(item)
     return sorted(dir_items, key=lambda x: x["label"].lower()) + sorted(file_items, key=lambda x: x["label"].lower())
@@ -411,7 +419,9 @@ def add_addons(favourites_file, media):
         thumbnail = addon['thumbnail']
         if not thumbnail:
             thumbnail = get_icon_path('unknown')
-        fanart = addon.get('fanart','')
+        fanart = addon.get('fanart','none')
+        if not fanart.strip():
+            fanart = 'none'
         path = "plugin://%s" % id
         context_items = []
         fancy_label = "[B]%s[/B]" % label
@@ -439,7 +449,7 @@ def add_addons(favourites_file, media):
             'thumbnail': thumbnail,
             'context_menu': context_items,
         }
-        if fanart:
+        if fanart != 'none':
             item['properties'] = {'Fanart_Image':fanart}
         items.append(item)
     return items
@@ -516,7 +526,7 @@ def index_of(path=None):
             'thumbnail':thumbnail,
             'context_menu': context_items,
         }
-        if fanart:
+        if fanart.strip() and fanart != 'none':
             item['properties'] = {'Fanart_Image':fanart}
         items.append(item)
 
