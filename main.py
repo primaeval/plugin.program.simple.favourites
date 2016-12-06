@@ -49,7 +49,6 @@ def play(url):
 
 @plugin.route('/execute/<url>')
 def execute(url):
-    #url = 'Container.Update(%s,replace)' % url
     xbmc.executebuiltin(url)
 
 @plugin.route('/add_favourite/<favourites_file>/<name>/<url>/<thumbnail>/<fanart>')
@@ -545,6 +544,3 @@ if __name__ == '__main__':
         except: pass
 
     plugin.run()
-    #if big_list_view == True:
-    #    view_mode = int(plugin.get_setting('view_mode'))
-    #    plugin.set_view_mode(view_mode)
