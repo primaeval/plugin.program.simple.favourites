@@ -52,15 +52,15 @@ def execute(url):
     #url = 'Container.Update(%s,replace)' % url
     xbmc.executebuiltin(url)
 
-@plugin.route('/add_favourite/<favourites_file>/<name>/<url>/<thumbnail>')
-def add_favourite(favourites_file,name,url,thumbnail):
+@plugin.route('/add_favourite/<favourites_file>/<name>/<url>/<thumbnail>/<fanart>')
+def add_favourite(favourites_file,name,url,thumbnail,fanart):
     xbmcvfs.mkdirs("special://profile/addon_data/%s/folders/" % (addon_id()))
     f = xbmcvfs.File(favourites_file,"rb")
     data = f.read()
     f.close()
     if not data:
         data = '<favourites>\n</favourites>'
-    fav = '    <favourite name="%s" thumb="%s">%s</favourite>\n</favourites>' % (name,thumbnail,url)
+    fav = '    <favourite name="%s" thumb="%s" fanart="%s">%s</favourite>\n</favourites>' % (name,thumbnail,fanart,url)
     data = data.replace('</favourites>',fav)
     f = xbmcvfs.File(favourites_file,"wb")
     f.write(data)
@@ -166,6 +166,22 @@ def change_favourite_thumbnail(favourites_file,thumbnail,fav):
     f.close()
     xbmc.executebuiltin('Container.Refresh')
 
+@plugin.route('/change_favourite_fanart/<favourites_file>/<fanart>/<fav>')
+def change_favourite_fanart(favourites_file,fanart,fav):
+    d = xbmcgui.Dialog()
+    new_fanart = d.browse(2, 'Choose Image', 'files')
+    if not new_fanart:
+        return
+    f = xbmcvfs.File(favourites_file,"rb")
+    data = f.read()
+    f.close()
+    new_fav = fav.replace(fanart,escape(new_fanart))
+    data = data.replace(fav,new_fav)
+    f = xbmcvfs.File(favourites_file,"wb")
+    f.write(data)
+    f.close()
+    xbmc.executebuiltin('Container.Refresh')
+
 @plugin.route('/favourites/<folder_path>')
 def favourites(folder_path):
     items = []
@@ -175,17 +191,21 @@ def favourites(folder_path):
     favourites = re.findall("<favourite.*?</favourite>",data)
     for fav in favourites:
         url = ''
-        match = re.search('<favourite name="(.*?)" thumb="(.*?)">(.*?)<',fav)
+        match = re.search('>(.*?)<',fav)
+        if match:
+            url = match.group(1)
+        label = ''
+        match = re.search('name="(.*?)"',fav)
         if match:
             label = match.group(1)
-            thumbnail = match.group(2)
-            url = match.group(3)
-        else:
-            match = re.search('<favourite name="(.*?)">(.*?)<',fav)
-            if match:
-                label = match.group(1)
-                thumbnail = get_icon_path('unknown')
-                url = match.group(2)
+        thumbnail = get_icon_path('unknown')
+        match = re.search('thumb="(.*?)"',fav)
+        if match:
+            thumbnail = match.group(1)
+        fanart = ''
+        match = re.search('fanart="(.*?)"',fav)
+        if match:
+            fanart = match.group(1)
         if url:
             context_items = []
             if plugin.get_setting('add') == 'false':
@@ -195,15 +215,17 @@ def favourites(folder_path):
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move to Folder', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite_to_folder, favourites_file=favourites_file, name=label, url=url, thumbnail=thumbnail))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Image', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
-            items.append(
-            {
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_fanart, favourites_file=favourites_file, fanart=fanart, fav=fav))))
+            item = {
                 'label': unescape(label),
                 'path': plugin.url_for('execute',url=unescape(url)),
-                #'path': plugin.url_for('play',url=unescape(url)),
                 'thumbnail':unescape(thumbnail),
                 'context_menu': context_items,
-            })
+            }
+            if fanart:
+                item['properties'] = {'Fanart_Image':fanart}
+            items.append(item)
     return items
 
 @plugin.route('/add_favourites/<path>')
@@ -229,7 +251,7 @@ def add_favourites(path):
                 url = match.group(2)
         if url:
             context_items = []
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=output_file, name=label, url=url, thumbnail=thumbnail))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=output_file, name=label, url=url, thumbnail=thumbnail, fanart=fanart))))
             items.append(
             {
                 'label': unescape(label),
@@ -322,7 +344,7 @@ def add_addons_folder(favourites_file,media,path):
                 media = "programs"
                 window = "programs"
             play_url = escape('ActivateWindow(%s,"%s",return)' % (window,url))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail, fanart=fanart))))
             item = {
                 'label': "[B]%s[/B]" % label,
                 'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media=media, path=url),
@@ -330,11 +352,11 @@ def add_addons_folder(favourites_file,media,path):
                 'context_menu': context_items,
             }
             if fanart:
-                item['properties'] = {'Fanart_Image':fanart}            
+                item['properties'] = {'Fanart_Image':fanart}
             dir_items.append(item)
         else:
             play_url = escape('PlayMedia("%s")' % url)
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail, fanart=fanart))))
             item = {
                 'label': "%s" % label,
                 'path': plugin.url_for('play',url=url),
@@ -387,7 +409,7 @@ def add_addons(favourites_file, media):
             play_url = escape('RunScript("%s")' % (id))
         else:
             play_url = escape('ActivateWindow(%s,"%s",return)' % (window,path))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
+        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail, fanart=fanart))))
         item = {
             'label': fancy_label,
             'path': plugin.url_for('add_addons_folder', favourites_file=favourites_file, media=media, path=path),
