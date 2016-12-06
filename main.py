@@ -311,7 +311,14 @@ def add_addons_folder(favourites_file,media,path):
                 window = "videos"
             elif media in ["music","audio"]:
                 window = "music"
+            elif media in ["executable","programs"]:
+                media = "programs"
+                window = "programs"
+            elif media in ["image","pictures"]:
+                media = "pictures"
+                window = "pictures"
             else:
+                media = "programs"
                 window = "programs"
             play_url = escape('ActivateWindow(%s,"%s",return)' % (window,url))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add', 'XBMC.RunPlugin(%s)' % (plugin.url_for(add_favourite, favourites_file=favourites_file, name=label.encode("utf8"), url=play_url, thumbnail=thumbnail))))
@@ -357,9 +364,16 @@ def add_addons(favourites_file, media):
         fancy_label = "[B]%s[/B]" % label
         if media == "video":
             window = "videos"
-        elif media == "music":
+        elif media in ["music","audio"]:
             window = "music"
+        elif media in ["executable","programs"]:
+            media = "programs"
+            window = "programs"
+        elif media in ["image","pictures"]:
+            media = "pictures"
+            window = "pictures"
         else:
+            media = "programs"
             window = "programs"
         if id.startswith("script"):
             play_url = escape('RunScript("%s")' % (id))
