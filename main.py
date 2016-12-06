@@ -212,15 +212,16 @@ def favourites(folder_path):
             fanart = match.group(1)
         if url:
             context_items = []
-            if plugin.get_setting('add') == 'false':
-                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=folder_path))))
-            if plugin.get_setting('sort') == 'false':
-                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move to Folder', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite_to_folder, favourites_file=favourites_file, name=label, url=url, thumbnail=thumbnail, fanart=fanart))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_fanart, favourites_file=favourites_file, fanart=fanart, fav=fav))))
+            if plugin.get_setting('edit') == 'true':
+                if plugin.get_setting('add') == 'false':
+                    context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=folder_path))))
+                if plugin.get_setting('sort') == 'false':
+                    context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite, favourites_file=favourites_file, name=label, url=url))))
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Move to Folder', 'XBMC.RunPlugin(%s)' % (plugin.url_for(move_favourite_to_folder, favourites_file=favourites_file, name=label, url=url, thumbnail=thumbnail, fanart=fanart))))
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_favourite, favourites_file=favourites_file, name=label, url=url))))
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_favourite, favourites_file=favourites_file, name=label, fav=fav))))
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_thumbnail, favourites_file=favourites_file, thumbnail=thumbnail, fav=fav))))
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_favourite_fanart, favourites_file=favourites_file, fanart=fanart, fav=fav))))
             item = {
                 'label': unescape(label),
                 'path': plugin.url_for('execute',url=unescape(url)),
@@ -495,12 +496,13 @@ def index_of(path=None):
         fanart_file = "%sfanart.txt" % folder_path
         fanart = xbmcvfs.File(fanart_file,"rb").read()
         context_items = []
-        if plugin.get_setting('add') == 'false':
-            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=path))))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=folder_path))))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_folder, path=path, name=folder))))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_thumbnail, path=folder_path))))
-        context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_fanart, path=folder_path))))
+        if plugin.get_setting('edit') == 'true':
+            if plugin.get_setting('add') == 'false':
+                context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Add Menu', 'ActivateWindow(10001,"%s")' % (plugin.url_for('add', path=path))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Remove', 'XBMC.RunPlugin(%s)' % (plugin.url_for(remove_folder, path=folder_path))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Rename', 'XBMC.RunPlugin(%s)' % (plugin.url_for(rename_folder, path=path, name=folder))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_thumbnail, path=folder_path))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_fanart, path=folder_path))))
 
         item = {
             'label': folder,
