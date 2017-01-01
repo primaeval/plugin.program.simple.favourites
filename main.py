@@ -5,6 +5,7 @@ import requests
 import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import xbmcplugin
 import base64
+import urllib
 
 plugin = Plugin()
 big_list_view = False
@@ -118,6 +119,7 @@ def move_favourite(favourites_file,name,url):
 def move_favourite_to_folder(favourites_file,name,url,thumbnail,fanart):
     d = xbmcgui.Dialog()
     top_folder = 'special://profile/addon_data/%s/folders/' % addon_id()
+    #TODO handle formatted folder names
     where = d.browse(0, 'Choose Folder', 'files', '', False, True, top_folder)
     if not where:
         return
@@ -284,7 +286,8 @@ def add_folder(path):
     folder_name = d.input("New Folder")
     if not folder_name:
         return
-    path = "%s%s/" % (path,folder_name)
+    quoted_folder_name = urllib.quote(folder_name,safe='')
+    path = "%s%s/" % (path,quoted_folder_name)
     xbmcvfs.mkdirs(path)
     folder_icon = get_icon_path('folder')
     icon_file = path+"icon.txt"
@@ -313,11 +316,13 @@ def remove_folder(path):
 @plugin.route('/rename_folder/<path>/<name>')
 def rename_folder(path,name):
     d = xbmcgui.Dialog()
-    new_name = d.input("New Name for: %s" % name,name)
+    unquoted_name = urllib.unquote(name)
+    new_name = d.input("New Name for: %s" % unquoted_name,unquoted_name)
     if not new_name:
         return
+    quoted_new_name = urllib.quote(new_name,safe='')
     old_folder = "%s%s/" % (path,name)
-    new_folder = "%s%s/" % (path,new_name)
+    new_folder = "%s%s/" % (path,quoted_new_name)
     xbmcvfs.rename(old_folder,new_folder)
     xbmc.executebuiltin('Container.Refresh')
 
@@ -521,7 +526,7 @@ def index_of(path=None):
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_fanart, path=folder_path))))
 
         item = {
-            'label': folder,
+            'label': urllib.unquote(folder),
             'path': plugin.url_for('index_of', path=folder_path),
             'thumbnail':thumbnail,
             'context_menu': context_items,
