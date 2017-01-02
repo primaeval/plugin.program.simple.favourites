@@ -6,6 +6,7 @@ import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import xbmcplugin
 import base64
 import urllib
+import zipfile
 
 plugin = Plugin()
 big_list_view = False
@@ -43,6 +44,32 @@ def unescape( str ):
     str = str.replace("&quot;","\"")
     str = str.replace("&amp;","&")
     return str
+
+def cleanFolder(path):
+    dirs, files = xbmcvfs.listdir(path)
+    for file in files:
+        full = path + '/' + file
+        xbmcvfs.delete(full)
+    for dir in dirs:
+        full = path + '/' + dir
+        cleanFolder(full)
+    xbmcvfs.rmdir(path)
+
+@plugin.route('/replace/<url>')
+def replace(url):
+    if not url:
+        return
+    src_folders = "special://profile/addon_data/%s/folders/" % (addon_id())
+    dst_folders = "special://profile/addon_data/%s/folders.last/" % (addon_id())
+    cleanFolder(dst_folders)
+    success = xbmcvfs.rename(src_folders,dst_folders)
+    dst = 'special://profile/addon_data/%s/folders.zip' % (addon_id())
+    success = xbmcvfs.copy(url,dst)
+    path = xbmc.translatePath('special://profile/addon_data/%s/folders.zip' % (addon_id()))
+    f = open(path,'rb')
+    zf = zipfile.ZipFile(f)
+    addon_data = "special://profile/addon_data/%s/" % (addon_id())
+    zf.extractall(xbmc.translatePath(addon_data))
 
 @plugin.route('/play/<url>')
 def play(url):
