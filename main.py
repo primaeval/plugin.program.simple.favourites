@@ -55,6 +55,17 @@ def cleanFolder(path):
         cleanFolder(full)
     xbmcvfs.rmdir(path)
 
+@plugin.route('/nuke')
+def nuke():
+    url = plugin.get_setting('url')
+    if not url:
+        return
+    d = xbmcgui.Dialog()
+    yes = d.yesno("Replace Everything", "Are you sure?")
+    if not yes:
+        return
+    replace(url)
+
 @plugin.route('/replace/<url>')
 def replace(url):
     if not url:
