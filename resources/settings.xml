@@ -5,6 +5,7 @@
 <setting id="edit" label="Show Edit Commands" type="bool" default="true" />
 </category>
 <category label="Maintenance">
+<setting type="lsep" label="(zip file containing folders directory)" />
 <setting id="url" label="Replacement Url" type="text" default="" />
 <setting id="replace" label="Replace Everything" type="action" action="RunPlugin(plugin://plugin.program.simple.favourites/nuke)" />
 </category>
