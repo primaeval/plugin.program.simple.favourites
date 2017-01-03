@@ -64,7 +64,9 @@ def nuke():
     yes = d.yesno("Replace Everything", "Are you sure?")
     if not yes:
         return
+    d.notification("Simple Favourites","Starting Replacement...")
     replace(url)
+    d.notification("Simple Favourites","Finished Replacement")
 
 @plugin.route('/replace/<url>')
 def replace(url):
