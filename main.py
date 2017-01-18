@@ -1,3 +1,5 @@
+#Copyright primaeval - but you can use it for free if you can be nice to someone all day :)
+
 from rpc import RPC
 from xbmcswift2 import Plugin
 import re
@@ -399,6 +401,21 @@ def change_folder_colour(path):
     xbmcvfs.File(colour_file,"wb").write(colour)
     xbmc.executebuiltin('Container.Refresh')
 
+@plugin.route('/set_password/<path>')
+def set_password(path):
+    d = xbmcgui.Dialog()
+    password_file = "%spassword.txt" % path
+    f = xbmcvfs.File(password_file,'rb')
+    password = f.read()
+    f.close()
+    if password:
+        input = d.input('Current Password')
+        if input != password:
+            return
+    password = d.input('New Password')
+    xbmcvfs.File(password_file,"wb").write(password)
+
+
 @plugin.route('/add_addons_folder/<favourites_file>/<media>/<path>')
 def add_addons_folder(favourites_file,media,path):
     try:
@@ -561,6 +578,13 @@ def index():
 @plugin.route('/index_of/<path>')
 def index_of(path=None):
     items = []
+    if path:
+        password_file = "%spassword.txt" % path
+        password = xbmcvfs.File(password_file,"rb").read()
+        if password:
+            input = xbmcgui.Dialog().input('Password:')
+            if input != password:
+                return
 
     folders, files = xbmcvfs.listdir(path)
     for folder in sorted(folders, key=lambda x: x.lower()):
@@ -580,6 +604,7 @@ def index_of(path=None):
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Thumbnail', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_thumbnail, path=folder_path))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_fanart, path=folder_path))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Colour', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_colour, path=folder_path))))
+            context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Set Password', 'XBMC.RunPlugin(%s)' % (plugin.url_for(set_password, path=folder_path))))
         label = urllib.unquote(folder)
         if colour:
             label = "[COLOR %s]%s[/COLOR]" % (colour,remove_formatting(label))
