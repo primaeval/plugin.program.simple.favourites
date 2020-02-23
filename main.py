@@ -1,14 +1,17 @@
 #Copyright primaeval - but you can use it for free if you can be nice to someone all day :)
 
-from rpc import RPC
+from rpc import RPC, PY3
 from xbmcswift2 import Plugin
 import re
 import requests
 import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import xbmcplugin
 import base64
-import urllib
 import zipfile
+if PY3:
+    import urllib.parse
+else:
+    import urllib
 
 plugin = Plugin()
 big_list_view = False
@@ -328,7 +331,10 @@ def add_folder(path):
     folder_name = d.input("New Folder")
     if not folder_name:
         return
-    quoted_folder_name = urllib.quote(folder_name,safe='')
+    if PY3:
+        quoted_folder_name = urllib.parse.quote(folder_name,safe='')
+    else:
+        quoted_folder_name = urllib.quote(folder_name,safe='')
     path = "%s%s/" % (path,quoted_folder_name)
     xbmcvfs.mkdirs(path)
     folder_icon = get_icon_path('folder')
@@ -358,11 +364,17 @@ def remove_folder(path):
 @plugin.route('/rename_folder/<path>/<name>')
 def rename_folder(path,name):
     d = xbmcgui.Dialog()
-    unquoted_name = urllib.unquote(name)
+    if PY3:
+        unquoted_name = urllib.parse.unquote(name)
+    else:
+        unquoted_name = urllib.unquote(name)
     new_name = d.input("New Name for: %s" % unquoted_name,unquoted_name)
     if not new_name:
         return
-    quoted_new_name = urllib.quote(new_name,safe='')
+    if PY3:
+        quoted_new_name = urllib.parse.quote(new_name,safe='')
+    else:
+        quoted_new_name = urllib.quote(new_name,safe='')
     old_folder = "%s%s/" % (path,name)
     new_folder = "%s%s/" % (path,quoted_new_name)
     xbmcvfs.rename(old_folder,new_folder)
@@ -605,7 +617,10 @@ def index_of(path=None):
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Fanart', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_fanart, path=folder_path))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Change Colour', 'XBMC.RunPlugin(%s)' % (plugin.url_for(change_folder_colour, path=folder_path))))
             context_items.append(("[COLOR yellow][B]%s[/B][/COLOR] " % 'Set Password', 'XBMC.RunPlugin(%s)' % (plugin.url_for(set_password, path=folder_path))))
-        label = urllib.unquote(folder)
+        if PY3:
+            label = urllib.parse.unquote(folder)
+        else:
+            label = urllib.unquote(folder)
         if colour:
             label = "[COLOR %s]%s[/COLOR]" % (colour,remove_formatting(label))
         item = {
