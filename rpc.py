@@ -1,3 +1,9 @@
+import sys
+PY3 = sys.version_info.major >= 3
+
+if PY3:
+    from builtins import str, object
+
 import json
 #from xbmcswift2 import xbmc
 import xbmc
@@ -6,8 +12,12 @@ class RPCType(type):
     def __getattr__(cls, category):
         return Category(category)
 
-class RPC(object):
-    __metaclass__ = RPCType
+if PY3:
+    class RPC(object, metaclass=RPCType):
+        pass
+else:
+    class RPC(object):
+        __metaclass__ = RPCType
     
 class Category(object):
     def __init__(self, name):
@@ -43,9 +53,12 @@ def json_query(query):
         query["id"] = 1
     
     xbmc_request = json.dumps(query)
-    raw = xbmc.executeJSONRPC(xbmc_request)
-    clean = unicode(raw, 'utf-8', errors='ignore')
-    response = json.loads(clean)
+    if PY3:
+        response = json.loads(xbmc.executeJSONRPC(xbmc_request))
+    else:
+        raw = xbmc.executeJSONRPC(xbmc_request)
+        clean = unicode(raw, 'utf-8', errors='ignore')
+        response = json.loads(clean)
     if "error" in response:
         raise RPCError(response["error"])
     return response.get('result', response)
